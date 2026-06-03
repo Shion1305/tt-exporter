@@ -32,6 +32,8 @@ The exporter is also available as a Docker image.
 docker run -d \
   --name tt-exporter \
   -p 9400:9400 \
+  --pid host \
+  --privileged \
   --device /dev/tenstorrent/0:/dev/tenstorrent/0 \
   --device /dev/tenstorrent/1:/dev/tenstorrent/1 \
   -v /usr/bin/tt-smi:/usr/bin/tt-smi \
@@ -39,7 +41,7 @@ docker run -d \
   ghcr.io/shion1305/tt-exporter:latest
 ```
 
-*Note: The container requires access to the Tenstorrent device nodes and the `tt-smi` binary (along with its dependencies) from the host.*
+*Note: The container requires `--pid host` and `--privileged` (or root user) to correctly scan host processes for workload metrics and to interact with hardware drivers via `tt-smi`.*
 
 ## Implementation Details
 
