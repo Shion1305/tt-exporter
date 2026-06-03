@@ -18,6 +18,12 @@ FROM python:3.12-slim-bookworm
 
 WORKDIR /root/
 
+# Install system dependencies for tt-smi
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libatomic1 \
+    pciutils \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install tt-smi and its dependencies
 RUN pip install --no-cache-dir tt-smi==5.2.0
 
