@@ -24,13 +24,22 @@ Prometheus exporter for Tenstorrent Blackhole devices.
 go build -o tt-exporter cmd/tt-exporter/main.go
 ```
 
-### Run
+### Docker
+
+The exporter is also available as a Docker image.
 
 ```bash
-./tt-exporter
+docker run -d \
+  --name tt-exporter \
+  -p 9400:9400 \
+  --device /dev/tenstorrent/0:/dev/tenstorrent/0 \
+  --device /dev/tenstorrent/1:/dev/tenstorrent/1 \
+  -v /usr/bin/tt-smi:/usr/bin/tt-smi \
+  -v /usr/lib:/usr/lib \
+  ghcr.io/shion1305/tt-exporter:latest
 ```
 
-The exporter will start on port `9400`. You can access metrics at `http://localhost:9400/metrics`.
+*Note: The container requires access to the Tenstorrent device nodes and the `tt-smi` binary (along with its dependencies) from the host.*
 
 ## Implementation Details
 
