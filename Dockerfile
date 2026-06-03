@@ -1,10 +1,7 @@
 # Build stage
-FROM golang:1.22-alpine AS builder
+FROM golang:1.26-bookworm AS builder
 
 WORKDIR /app
-
-# Install build dependencies
-RUN apk add --no-cache git
 
 # Copy go mod and sum files
 COPY go.mod go.sum ./
@@ -17,13 +14,12 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o tt-exporter cmd/tt-exporter/main.go
 
 # Final stage
-FROM alpine:latest
-
-# Install runtime dependencies (tt-smi needs to be available in the host/container environment)
-# Note: tt-smi usually requires access to the host's Tenstorrent driver and devices.
-RUN apk add --no-cache ca-certificates
+FROM python:3.12-slim-bookworm
 
 WORKDIR /root/
+
+# Install tt-smi and its dependencies
+RUN pip install --no-cache-dir tt-smi==5.2.0
 
 # Copy the binary from the builder stage
 COPY --from=builder /app/tt-exporter .
