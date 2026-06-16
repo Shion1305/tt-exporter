@@ -24,7 +24,8 @@ SHM is visible (see [Device memory requirements](#device-memory-requirements)).
 - `tenstorrent_chip_dram_used_bytes`: DRAM used per chip reached through a device (`chip_id` 0 = local gateway; remote chips via `is_remote`).
 - `tenstorrent_proc_dram_used_bytes`: DRAM used per process (opt-in via `TT_EXPORTER_SHM_PER_PID=1`; PID is in the workload's namespace).
 - `tenstorrent_mem_reference_count`: Processes attached to the device's SHM region (liveness signal).
-- `tenstorrent_mem_phantom`: `1` when `reference_count>0` but no host process holds the device fd — the totals are stale/frozen from a crashed workload, so the used gauges are suppressed.
+- `tenstorrent_mem_phantom`: `1` when `reference_count>0` but no host process holds the device fd — the totals are stale/frozen from a crashed workload, so the used gauges are suppressed; `0` when liveness was verified. Emitted only when the cross-check could run (see below); a crashed workload's SHM file persists until you `rm /dev/shm/tt_device_*`.
+- `tenstorrent_shm_liveness_unverifiable`: `1` when `reference_count>0` but liveness could not be cross-checked (the `asic_id` did not resolve to a BusID, or the `/proc` fd scan was unavailable). The used gauges are still emitted (the device may be live), and `tenstorrent_mem_phantom` is absent rather than a misleading `0`. Asserting phantom/liveness requires the `asic_id` to resolve to a BusID **and** the exporter to share the workload's PID namespace (`--pid host`).
 - `tenstorrent_shm_version`, `tenstorrent_shm_num_active_processes`, `tenstorrent_shm_last_update_seconds`: SHM diagnostics.
 - `tenstorrent_shm_info`: Static info series (value `1`); exposes the **unstable** logical `metal_device_id`. Do not join on it.
 - `tenstorrent_shm_parse_errors_total`: Count of SHM files skipped, by `reason` (`eacces`, `short_file`, `unknown_version`, `other`).

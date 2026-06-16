@@ -135,7 +135,13 @@ func readSHMRegion(path string) (model.SHMRegion, error) {
 
 	buf := make([]byte, shmRegionSize)
 	if _, err := io.ReadFull(f, buf); err != nil {
-		return model.SHMRegion{}, errShortRegion
+		// A genuinely short file (still being created/truncated) is expected and
+		// classified as short_file; pass any other I/O error (EISDIR, EIO, a
+		// read-time EACCES) through so it is classified and logged accurately.
+		if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+			return model.SHMRegion{}, errShortRegion
+		}
+		return model.SHMRegion{}, err
 	}
 	r, err := parseSHMRegion(buf)
 	if err != nil {
@@ -156,6 +162,8 @@ type shmCollectResult struct {
 // tallied, but never suppresses the others.
 func collectSHMRegions(dir string) shmCollectResult {
 	res := shmCollectResult{ErrReasons: map[string]int{}}
+	// shmGlobPattern is a constant, so the only possible Glob error is
+	// ErrBadPattern, which is unreachable here; an empty match list is fine.
 	matches, _ := filepath.Glob(filepath.Join(dir, shmGlobPattern))
 	for _, path := range matches {
 		r, err := readSHMRegion(path)

@@ -29,6 +29,22 @@ func mangleASICID(boardID uint64, asicLocation uint32) uint64 {
 // this table only resolves it to a BusID when a match exists.
 func asicToBusID(snap model.TTSmiOutput) map[uint64]string {
 	m := make(map[uint64]string)
+	ambiguous := make(map[uint64]struct{}) // keys claimed by >1 distinct BusID
+	// register maps a candidate chip id to a BusID. If two devices ever claim
+	// the same id with different BusIDs (e.g. a multi-ASIC board where
+	// asic_location is missing and both mangle to (board_id<<5)|0), the id is
+	// poisoned and left unresolved rather than silently misattributed.
+	register := func(key uint64, bus string) {
+		if _, bad := ambiguous[key]; bad {
+			return
+		}
+		if existing, ok := m[key]; ok && existing != bus {
+			delete(m, key)
+			ambiguous[key] = struct{}{}
+			return
+		}
+		m[key] = bus
+	}
 	for _, d := range snap.DeviceInfo {
 		bus := strings.TrimSpace(d.BoardInfo.BusID)
 		if bus == "" {
@@ -39,10 +55,10 @@ func asicToBusID(snap model.TTSmiOutput) map[uint64]string {
 			if l, ok := parseHexOrDec(d.SmbusTelem.ASICLocation); ok {
 				loc = l
 			}
-			m[mangleASICID(boardID, uint32(loc))] = bus
+			register(mangleASICID(boardID, uint32(loc)), bus)
 		}
 		if raw, ok := rawASICID(d); ok {
-			m[raw] = bus
+			register(raw, bus)
 		}
 	}
 	return m
